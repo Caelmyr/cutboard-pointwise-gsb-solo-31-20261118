@@ -68,7 +68,10 @@ def summary(p):
 
 def edit(p,b,image=None):
     action=b.get('action');checkpoint(p)
-    if action=='add':
+    if action=='autolayout':
+        from .autolayout import apply_plan
+        apply_plan(p,b.get('plan'))
+    elif action=='add':
         if image is None:raise Invalid('缺少原图')
         row,a=image;import uuid
         p['pieces'].append(dict(id=uuid.uuid4().hex,image_id=row['id'],name=str(b.get('name',row['name']))[:80],group=str(b.get('group','默认'))[:40],width=integer(b.get('width',80),1,1024,'宽'),height=integer(b.get('height',50),1,1024,'高'),x=0,y=0,page=1,rotation=0,allow_rotate=True,crop=[0,0,a.shape[1],a.shape[0]]))

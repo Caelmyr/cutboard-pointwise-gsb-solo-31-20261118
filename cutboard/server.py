@@ -1,8 +1,9 @@
 import io,copy
 from flask import request,jsonify,render_template,send_file
-from image_lab.validation import Invalid
+from image_lab.validation import Invalid,Conflict
 from .storage import Storage
 from .core import decode,demo,create,edit,history,summary,integer,png
+from .autolayout import build_plan,render_plan,verify_plan
 
 def install(app,root):
     store=Storage(root);app.extensions['cutboard']=store
@@ -41,6 +42,29 @@ def install(app,root):
     @app.post('/cutboard/layouts/<key>/history')
     def hist(key):
         b=body();return result(store.change(key,b.get('revision'),lambda p:history(p,b.get('action'))))
+    @app.post('/cutboard/layouts/<key>/auto-layout')
+    def auto_layout(key):
+        b=body();mode=b.get('mode')
+        if mode not in ('save','group'):raise Invalid('请选择省纸或整组排版方式')
+        p=store.layout(key)
+        if b.get('revision')!=p['revision']:raise Conflict('排版已改变，请刷新')
+        plan=build_plan(p,mode)
+        return jsonify(plan=plan,summary=summary(p))
+    @app.post('/cutboard/layouts/<key>/auto-layout/preview.png')
+    def auto_layout_preview(key):
+        b=body();plan=b.get('plan');page=integer(b.get('page',1),1,20,'页号')
+        if not isinstance(plan,dict):raise Invalid('缺少排版方案')
+        p=store.layout(key)
+        verify_plan(p,plan)
+        if not plan.get('pages'):raise Invalid('该方案没有可预览的页面（存在放不下的分组）')
+        if not any(v['page']==page for v in plan['pages']):raise Invalid('预览页号超出方案页数')
+        images={q['image_id']:store.image(q['image_id'])[1] for q in p['pieces']}
+        return send_file(io.BytesIO(png(render_plan(p,images,plan,page))),mimetype='image/png')
+    @app.post('/cutboard/layouts/<key>/auto-layout/apply')
+    def auto_layout_apply(key):
+        b=body();plan=b.get('plan')
+        if not isinstance(plan,dict):raise Invalid('缺少排版方案')
+        return result(store.change(key,b.get('revision'),lambda p:edit(p,dict(action='autolayout',plan=plan))))
     @app.post('/cutboard/layouts/<key>/duplicate')
     def duplicate(key):
         p=store.layout(key);p['name']+=' 副本';p['undo']=[];p['redo']=[];return result(store.save(p,dict(layout_id=key,revision=p['revision'])))

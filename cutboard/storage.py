@@ -54,5 +54,5 @@ class Storage:
             z.writestr('layout.json',json.dumps(p,ensure_ascii=False,indent=2));z.writestr('summary.json',json.dumps(summary(p),ensure_ascii=False,indent=2))
             for page in summary(p)['pages'] or [1]:z.writestr(f'page-{page}.png',self.render(key,page))
             for iid in {q['image_id'] for q in p['pieces']}:z.writestr('originals/'+iid+'.png',png(self.image(iid)[1]))
-            z.writestr('README.txt','CutBoard排版包：像素为纸面工作单位，page-N.png为实际裁片图；layout.json为可在此工作区恢复的编辑状态；originals为原素材。边界和间隔警告在summary.json。无自动排版或直切顺序。')
+            z.writestr('README.txt','CutBoard排版包：像素为纸面工作单位，page-N.png为实际裁片图；layout.json为可在此工作区恢复的编辑状态；originals为原素材。边界和间隔警告在summary.json。自动直切排版的切割顺序在工作台预览中给出，导出包不另存切割方案。')
         return out.getvalue()
