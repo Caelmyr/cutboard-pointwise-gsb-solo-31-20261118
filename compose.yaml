@@ -1,0 +1,14 @@
+name: solo34-cutboard
+services:
+  web:
+    build: .
+    image: solo34-cutboard:1.0
+    network_mode: bridge
+    ports: ["18934:18934"]
+    volumes: ["cutboard-data:/data"]
+    environment:
+      CUTBOARD_DATA_DIR: /data
+      PORT: 18934
+    restart: unless-stopped
+volumes:
+  cutboard-data:
